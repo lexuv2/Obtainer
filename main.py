@@ -34,7 +34,7 @@ There are a number of utility commands being showcased here.'''
 text_download_reddit="Downloading reddit video"
 text_yt_download = "Downloading YT video"
 text_start_download = 'Starting download'
-text_description = "Pobieracz:tm:, najlepszy bot do pobierania filmów z YT i Hive mind'a"
+text_description = "Obtainer, best bot for downloading YouTube and reddit videos"
 text_start_time = 'Start time'
 text_end_time = 'End time'
 text_state = 'State'
@@ -122,7 +122,7 @@ async def zrobembed(ctx,url,glos,bass,wiad,old):
         komp="Video"
     if cvideo and caudio:
         komp= 'Video and audio'
-    embed.add_field(name="Kompresuje:", value=komp, inline=False)   
+    embed.add_field(name="Compressing:", value=komp, inline=False)   
     #embed.add_field(name="Glośność", value=f'+{glos}dB', inline=False)
     #embed.add_field(name="Bass", value=f'+{bass}dB', inline=False)
     embed.add_field(name=text_state, value=wiad, inline=False)
@@ -177,11 +177,12 @@ async def donwload(td):
     if 'reddit' in url:
         try:
             old = await zrobembed(ctx,url,glos,bass,text_download_reddit,old)
-            reddit = Downloader()
+            reddit = Downloader(max_q=True)
             reddit.url = url
             file_name = reddit.download()
             os.rename(file_name,'pre.mp4')
-        except:
+        except Exception as e:
+            print(e)
             os.system('rm pre.mp4')
             await zrobembed(ctx,url,glos,bass,f"Invalid link",old)
             kolejka.pop()
@@ -216,7 +217,7 @@ async def donwload(td):
     print(caudio)
     print(cvideo)
     #ffmpeg_extract_subclip("pre.mp4", starts, stop, targetname="out.mp4")
-    old =await zrobembed(ctx,url,glos,bass,"Zakończyłem pobieranie, preprocesuje",old)
+    old =await zrobembed(ctx,url,glos,bass,"Finished downloading, preprocessing",old)
     if stop>0:
         clip = VideoFileClip("pre.mp4").subclip(starts,stop)
         clip.write_videofile("out.mp4")
@@ -227,7 +228,7 @@ async def donwload(td):
     vbi = int(info['video']['bitrate'].replace('kb/s' , ''))
     if 'audio' in info:
         bi = int(info['audio']['bitrate'].replace('kb/s' , ''))
-    old =await zrobembed(ctx,url,glos,bass,"Pierwsza kompresja",old)
+    old =await zrobembed(ctx,url,glos,bass,"Initial compression",old)
     loop = asyncio.get_running_loop()
     with concurrent.futures.ProcessPoolExecutor() as pool:
         await loop.run_in_executor(pool,pre1)
@@ -247,7 +248,7 @@ async def donwload(td):
             await loop.run_in_executor(pool,subprocess.call,['ffmpeg','-y','-i','tmp.mp4' ,'-b:a','48k','out.mp4'])
         bi=48*2
     #os.rename('tmp.mp4' , 'out.mp4')
-    old =await zrobembed(ctx,url,glos,bass,"Preprocesing skończony",old)
+    old =await zrobembed(ctx,url,glos,bass,"Preprocessing finished",old)
     print('=============================================================================')
     presiz = ((os.path.getsize('out.mp4') >> 20))
     while ((os.path.getsize('out.mp4') >> 20)>7 ):
@@ -272,14 +273,14 @@ async def donwload(td):
         print(h)
         print(bi)
         if caudio:
-            old =await zrobembed(ctx,url,glos,bass,f"Film waży {(os.path.getsize('out.mp4') >> 20)}MB - Kompresuje audio\n Rozdzielczość: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi*2}",old)
+            old =await zrobembed(ctx,url,glos,bass,f"Video weights {(os.path.getsize('out.mp4') >> 20)}MB - Compressing audio\n Resolution: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi*2}",old)
             with concurrent.futures.ProcessPoolExecutor() as pool:
                 await loop.run_in_executor(pool,subprocess.call,['ffmpeg','-y','-i','tmp.mp4' ,'-b:a',f'{bi}k','out.mp4'])
             #subprocess.call(['ffmpeg','-y','-i','tmp.mp4' ,'-b:a',f'{bi}k','out.mp4'])
 
         #subprocess.call(['ffmpeg','-y','-i','out.mp4','-vf',f'scale=iw/{2}:ih/{2}','tmp.mp4'])
         if cvideo:
-            old =await zrobembed(ctx,url,glos,bass,f"Film waży {(os.path.getsize('out.mp4') >> 20)}MB - Kompresuje video\n Rozdzielczość: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi*2}",old)
+            old =await zrobembed(ctx,url,glos,bass,f"Video weights {(os.path.getsize('out.mp4') >> 20)}MB - Compressing video\n Resolution: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi*2}",old)
             with concurrent.futures.ProcessPoolExecutor() as pool:
                 await loop.run_in_executor(pool,subprocess.call,['ffmpeg','-y','-i','out.mp4' ,'-s',f'{w}x{h}','-c:a','copy','tmp.mp4'])
                 await loop.run_in_executor(pool,subprocess.call,['ffmpeg','-y','-i','tmp.mp4' ,'-b:v',f'{vbi}k','out.mp4'])
@@ -289,14 +290,14 @@ async def donwload(td):
         #os.rename('tmp.mp4' , 'out.mp4')
         if presiz == (os.path.getsize('out.mp4') >> 20):
             os.system('rm pre.mp4')
-            await zrobembed(ctx,url,glos,bass,f"ZA DUŻY PLIK WYPIERDALAJ",old)
+            await zrobembed(ctx,url,glos,bass,f"File to big",old)
             kolejka.pop()
             if len(kolejka)!=0:
                 await donwload(mapa[kolejka[-1]])
             return
         presiz = (os.path.getsize('out.mp4') >> 20)
     clip = VideoFileClip("out.mp4") 
-    old =await zrobembed(ctx,url,glos,bass,f"Zakończone Rozdzielczość: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi}",old)
+    old =await zrobembed(ctx,url,glos,bass,f"Finished Resolution: {int(clip.w)}x{int(clip.h)}\n Bitrate audio: {bi}\nBitrate video: {vbi}",old)
     #subprocess.call(['ffmpeg','-y','-i','out.mkv' ,'copy','tmp.mp4'])
     #os.rename('tmp.mkv' , 'out.mkv')
     #subprocess.call(['ffmpeg','-y','-i','out.mkv' ,'-c','copy','tmp.mp4'])
@@ -329,10 +330,14 @@ async def on_raw_reaction_add( payload):
     chnl = await bot.fetch_channel(payload.channel_id)
     msg = await chnl.fetch_message(payload.message_id)
     print("REAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACT")
-    if user != bot.user.id and msg.author.id==bot.user.id and msg != activeid:
+    if user != bot.user.id and msg.author.id==bot.user.id and msg.id != activeid:
+        print(msg)
+        print(activeid )
         if str(emoji)=='❌':
             print("delet")
             await msg.delete()
+    else:
+        print("nie przeszło")
 
 
 @bot.event
@@ -349,16 +354,15 @@ async def on_reaction_add(reaction, user):
     if reaction.message.id in mapa and user.id != bot.user.id:
         print(reaction.emoji)
         if reaction.emoji == '✅':
+            await reaction.message.clear_reaction('')
+            await reaction.message.clear_reaction('')
+            await reaction.message.clear_reaction('')
             if len(kolejka)==0:
                 kolejka.appendleft(reaction.message.id)
                 asyncio.get_event_loop().create_task(donwload(mapa[reaction.message.id]))
             else:
                 kolejka.appendleft(reaction.message.id)
                 await mapa[reaction.message.id].waiting()
-                
-
-        if reaction.emoji == '❌':
-            await activemsg.delete()
         
         if reaction.emoji == '🇻':
             mapa[reaction.message.id].cvideo=1
@@ -404,12 +408,12 @@ async def gib(ctx, url: str, start : str='0:0', stop : str='-1:-1' ):
     embed.add_field(name=text_end_time, value=f'{stopm}:{stops}', inline=False)
     #embed.add_field(name="Glośność", value=f'+{glosnosc}dB', inline=False)
     #embed.add_field(name="Bass", value=f'+{bass}dB', inline=False)
-    embed.add_field(name=text_state, value='Startuje', inline=False)
+    embed.add_field(name=text_state, value='Starting', inline=False)
 
     #embed.add_field(name=text_disable_video_compression, value=':regional_indicator_v:', inline=False)
-    embed.add_field(value=":regional_indicator_a:", name='Wyłącz kompresje audio:', inline=False)
-    embed.add_field(value=":white_check_mark:", name='Potwierdź: ', inline=False)
-    embed.add_field(value=":x:", name='Anuluj: ', inline=False)
+    embed.add_field(value=":regional_indicator_a:", name='Disable audio compression:', inline=False)
+    embed.add_field(value=":white_check_mark:", name='Accept: ', inline=False)
+    embed.add_field(value=":x:", name='Cancel: ', inline=False)
     msg = await ctx.send(embed=embed)
     activemsg = msg
     #await msg.add_reaction('\N{Regional Indicator Symbol Letter V}')
